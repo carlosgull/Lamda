@@ -1,5 +1,6 @@
 """Codificacion del algoritmo lamda clustering primera versión para el archivo de datos Aggregation"""
 import os, time, pandas, numpy, colorama, math
+import numpy as np 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
@@ -7,7 +8,7 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 #en el delimitador hay que colocar \t para indicarle que se separan por tabulador
 datos=pandas.read_csv('C:/Python/doctorado/Aggregation1.csv', delimiter='\t')#columnas del dataset
 #creo un dataframe que me permitirá un mejor manejo de la estructura
-df=pandas.DataFrame(datos)
+df=pandas.DataFrame(datos)#Dataset original con la etiqueta
 print(df)
 df1=df.drop(['clases'], axis=1)# elimino la columna de las clases y trabajo con el Dataframe df1
 df1=(df1-df1.min())/(df1.max()-df1.min()) #normalizo la data de acuerdo al criterio maximo minimo
@@ -51,7 +52,7 @@ for l in range(1,len(df1)):
     index=max([mayor,df1.loc[l, 'GADNIC']])
     if (index==mayor):
         contador+=1
-        print('hola', contador)
+        #print('hola', contador)
         df1.loc[l,'Cluster']=poscluster
         df1['POS'+repr(poscluster)]=int(l)
         df1['n'+repr(poscluster)]= df1.loc[0,'n'+repr(poscluster)]+1
@@ -59,7 +60,7 @@ for l in range(1,len(df1)):
         df1.loc[l,'promi' + repr(poscluster) +'2']=df1.loc[l, 'promf'+repr(poscluster) + '2']
     else:
         contador+=1
-        print('chao', contador)
+        #print('chao', contador)
         k+=1
         df1.loc[l,'Cluster']=k
         df1['POS'+repr(k)]=int(l)
@@ -67,5 +68,39 @@ for l in range(1,len(df1)):
         df1.loc[l,'promi' + repr(k) +'1']=df1.loc[l, '1']
         df1.loc[l,'promi' + repr(k) +'2']=df1.loc[l, '2']    
 print(df1)
-datasalida=df1[['1','2', 'Cluster']] 
+datasalida=df1[['1','2','Cluster']] 
+ruta='C:\Python\doctorado\LAMDAClusAggregationModelo.csv'#EXPORTACIÓN DE LOS RESULTADOS
+datasalida.to_csv(ruta)
 print(datasalida)
+""" ***************************************************************"""
+"""CREACIÓN DEL GRAFICO DEL CONJUNTO DE DATOS ORIGINAL
+EN ESTE CASO SE PUEDE HACER YA QUE SE CUENTA CON LAS ETIQUETAS PERO NO 
+SIEMPRE SUCEDE"""
+df2=df1.iloc[:, [0, 1]]# data lista para aplicar el ACP
+print(df2)
+pca=PCA(n_components=2)# creo el modelo 
+pca_aggre_modelo=pca.fit_transform(df2)
+pca_aggre_df=pandas.DataFrame(data=pca_aggre_modelo, columns= ['Componente1', 'Componente2']) #creación del data frame con las coordenadas de los dos componentes 
+pca_nombres_aggre=pandas.concat([pca_aggre_df, df[['clases']]], axis=1)#Agrego la columna de la etiqueta de los datos originales
+pca_nombres_aggre['clases']=pca_nombres_aggre['clases'].astype(int)# convierto la columna de la etiqueta en valores enteros 
+fig=plt.figure(figsize=(10,10))
+ax=fig.add_subplot(1,1,1)
+ax.set_xlabel('Componente 1', fontsize=15)
+ax.set_ylabel('Componente 2', fontsize=15)
+ax.set_title('Data Aggregation Original', fontsize=20)
+color_theme= np.array(['red', 'blue', 'black', 'red', 'orange', 'green', 'brown', 'purple'])
+ax.scatter(x=pca_aggre_df.Componente1 , y= pca_aggre_df.Componente2, c=color_theme[pca_nombres_aggre.clases], s=40, marker='.')
+plt.savefig("AggregationOrig.png", bbox_inches='tight')
+plt.show()
+""" **************GRAFICO DEL MODELO  LAMDA CLASIFICACION*********************************************"""
+pca_nombres_aggre1=pandas.concat([pca_aggre_df, datasalida[['Cluster']]], axis=1)#Agrego la columna de la etiqueta del modelo
+pca_nombres_aggre1['Cluster']=pca_nombres_aggre1['Cluster'].astype(int)# convierto la columna de la etiqueta en valores enteros 
+fig=plt.figure(figsize=(10,10))
+ax=fig.add_subplot(1,1,1)
+ax.set_xlabel('Componente 1', fontsize=15)
+ax.set_ylabel('Componente 2', fontsize=15)
+ax.set_title('Data Aggregation LAMDA Clasificación', fontsize=20)
+color_theme= np.array(['red', 'blue', 'black', 'red', 'orange', 'green', 'brown', 'purple'])
+ax.scatter(x=pca_aggre_df.Componente1 , y= pca_aggre_df.Componente2, c=color_theme[pca_nombres_aggre1.Cluster], s=40, marker='.')
+plt.savefig("AggregationLAMDAClas.png", transparent=True,  bbox_inches='tight', dpi=300)
+plt.show()
